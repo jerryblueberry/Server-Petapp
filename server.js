@@ -63,6 +63,7 @@ const User  = require('./models/user');
 const Product = require('./models/product');
 const Review = require('./models/review');
 const Message = require('./models/message');
+const Comment = require ('./models/comment');
 
 //  end point to register user
 app.post('/register',upload.single('imageFile'),async (req, res) => {
@@ -490,6 +491,44 @@ app.get('/reviews/products/:productId', async (req, res) => {
   }
 });
 
+
+
+//  endpoint for comment submission
+app.post('/comment',async(req,res) => {
+  try {
+    const {userId,productId,comment} = req.body;
+
+    //  creating a neew comment document
+
+    const newComment = new Comment({
+      userId,
+      productId,
+      comment,
+      createdAt:new Date(),
+    });
+
+    const savedComment = await newComment.save();
+
+    
+    res.status(200).json(savedComment);
+  } catch (error) {
+    res.status(500).json({error:error.message});
+    
+  }
+})
+
+//  endpoint to get comment for specific posts
+app.get('/comments/products/:productId',async(req,res) =>{
+  try {
+    const productId = req.params.productId;
+    const comments = await Comment.find({productId}).populate('userId');
+    res.status(200).json(comments);
+
+    
+  } catch (error) {
+   res.status(400).json({error:error.message}); 
+  }
+})
 
 
 //  end point to post message and store them in backend
