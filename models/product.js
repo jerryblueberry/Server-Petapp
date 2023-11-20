@@ -22,6 +22,10 @@ const productSchema = new mongoose.Schema({
   location: {
     type: String,
   },
+  category: {
+    type: String,
+    required: true,
+  },
   postedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

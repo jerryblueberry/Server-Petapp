@@ -65,10 +65,10 @@ const Review = require('./models/review');
 const Message = require('./models/message');
 
 //  end point to register user
-app.post('/register', (req, res) => {
+app.post('/register',upload.single('imageFile'),async (req, res) => {
   const { name, email, password, image } = req.body;
   //  create a new User Object
-  const newUser = new User({ name, email, password, image });
+  const newUser = new User({ name, email, password, image:req.file.path });
 
   //  save the user to the database
   newUser
@@ -233,9 +233,9 @@ app.get('/loggedUser/:userId', (req, res) => {
 //   }
 // });
 
-app.post('/add', async (req, res) => {
+app.post('/add',upload.single('imageFile'), async (req, res) => {
   try {
-    const { name, description, breed, age, image, weight,postedBy,location } = req.body;
+    const { name, description, breed, age, image,category, weight,postedBy,location } = req.body;
     // const userId = req.user.userId; // Assuming you have user information in req.user
 
     const product = new Product({
@@ -244,8 +244,9 @@ app.post('/add', async (req, res) => {
       breed,
       location,
       age,
-      image,
+      image:req.file.path,
       weight,
+      category,
       timestamp:new Date(),
       postedBy,
       // Include the user who posted the product
@@ -316,7 +317,7 @@ app.get('/products', async (req, res) => {
     // Use the $or operator to search for products matching any of the conditions
     const products = await Product.find({ $or: searchConditions }).populate('postedBy','name image _id')
     .sort({timeStamp:-1})
-    .limit(10);
+    .limit(99);
 
     if (products.length === 0) {
       // No search results found
@@ -328,6 +329,32 @@ app.get('/products', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+//  endpoint for  categories
+app.get('/products/categories/:category', async (req, res) => {
+  try {
+    const category = req.params.category || "";
+
+    // Define the condition for fetching products in the specified category
+    const categoryCondition = { category: { $regex: category, $options: "i" } };
+
+    // Use the find method to fetch products with the specified category
+    const products = await Product.find(categoryCondition).populate('postedBy', 'name image _id')
+      .sort({ timeStamp: -1 })
+      .limit(99);
+
+    if (products.length === 0) {
+      // No products found for the specified category
+      return res.status(404).json({ message: `No products found for the category: ${category}` });
+    }
+
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // app.get('/products', async (req, res) => {
 //   try {
 //     const search = req.query.search || "";
@@ -393,7 +420,7 @@ app.get('/products/:productId',async(req,res) => {
   
   try {
     const productId = req.params.productId;
-    const product = await Product.findById(productId).populate('postedBy');
+    const product = await Product.findById(productId).populate('postedBy',);
     if(!product){
       return res.status(404).json({error:"Product Not found"})
     } 
@@ -412,7 +439,7 @@ app.get('/users/:userId/posts', async (req, res) => {
     const { userId } = req.params;
 
     // Find all the posts created by the user and sort them by timestamp in descending order
-    const userPosts = await Product.find({ postedBy: userId }).populate('postedBy')
+    const userPosts = await Product.find({ postedBy: userId }).populate('postedBy','name _id image')
       .sort({ timeStamp: -1 })
       .limit(10);
 
